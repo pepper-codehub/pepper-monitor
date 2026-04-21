@@ -1,0 +1,265 @@
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌶️ 胡椒监控系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); min-height: 100vh; color: #eee; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .header { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-radius: 20px; padding: 25px 30px; margin-bottom: 25px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .logo h1 { font-size: 28px; background: linear-gradient(135deg, #f39c12 0%, #e74c3c 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .logo p { color: #888; font-size: 14px; margin-top: 5px; }
+        .status { display: flex; gap: 15px; flex-wrap: wrap; }
+        .status-item { background: rgba(255,255,255,0.08); padding: 8px 16px; border-radius: 20px; font-size: 13px; display: flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,0.1); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #666; }
+        .status-dot.online { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
+        .status-dot.offline { background: #e74c3c; }
+        .section { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-radius: 20px; padding: 25px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
+        .section-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #f39c12; display: flex; align-items: center; gap: 10px; }
+        .camera-wrapper { position: relative; border-radius: 15px; overflow: hidden; background: #000; aspect-ratio: 16/9; }
+        #camera-feed { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .camera-overlay { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.6); padding: 6px 12px; border-radius: 20px; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+        .cam-time { color: #fff; font-family: monospace; }
+        .controls { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .voice-status { font-size: 13px; color: #888; margin-top: 12px; min-height: 20px; }
+        .audio-player { margin-top: 12px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 8px; font-size: 14px; }
+        .btn-primary { background: linear-gradient(135deg, #f39c12 0%, #e74c3c 100%); color: white; }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: #ccc; border: 1px solid rgba(255,255,255,0.15); }
+        .btn-voice { background: rgba(46, 204, 113, 0.2); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.3); }
+        .btn-voice:hover { background: rgba(46, 204, 113, 0.3); }
+        .btn-voice-talk { background: rgba(52, 152, 219, 0.2); color: #3498db; border: 1px solid rgba(52, 152, 219, 0.3); }
+        .btn-voice-talk:hover { background: rgba(52, 152, 219, 0.3); }
+        .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .btn.recording { background: #e74c3c !important; color: white !important; border-color: #e74c3c !important; animation: rec-pulse 1s infinite; }
+        .btn.listening { background: #2ecc71 !important; color: white !important; border-color: #2ecc71 !important; animation: listen-pulse 1.5s infinite; }
+        @keyframes rec-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.4); } 50% { box-shadow: 0 0 0 10px rgba(231,76,60,0); } }
+        @keyframes listen-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(46,204,113,0.4); } 50% { box-shadow: 0 0 0 10px rgba(46,204,113,0); } }
+        .btn-logout { background: rgba(255,255,255,0.05); color: #888; border: 1px solid rgba(255,255,255,0.1); margin-left: auto; }
+        .btn-logout:hover { color: #e74c3c; border-color: rgba(231,76,60,0.3); }
+        .listen-indicator { display: none; margin-top: 12px; padding: 10px 15px; background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.3); border-radius: 10px; font-size: 13px; color: #2ecc71; }
+        .waveform { display: none; height: 40px; background: rgba(0,0,0,0.3); border-radius: 8px; margin-top: 10px; padding: 0 10px; overflow: hidden; align-items: center; gap: 2px; }
+        .waveform.active { display: flex; }
+        .waveform .bar { width: 3px; background: #2ecc71; border-radius: 2px; min-height: 3px; transition: height 0.05s; }
+        .listen-indicator.active { display: flex; align-items: center; gap: 8px; }
+        .listen-wave { display: flex; gap: 2px; align-items: center; }
+        .listen-wave span { width: 3px; background: #2ecc71; border-radius: 2px; animation: wave 1s ease-in-out infinite; }
+        .listen-wave span:nth-child(1) { height: 8px; animation-delay: 0s; }
+        .listen-wave span:nth-child(2) { height: 14px; animation-delay: 0.15s; }
+        .listen-wave span:nth-child(3) { height: 10px; animation-delay: 0.3s; }
+        .listen-wave span:nth-child(4) { height: 16px; animation-delay: 0.45s; }
+        .listen-wave span:nth-child(5) { height: 6px; animation-delay: 0.6s; }
+        @keyframes wave { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+        .footer { text-align: center; margin-top: 25px; color: #555; font-size: 12px; }
+        @media (max-width: 600px) { .container { padding: 10px; } .header { padding: 15px 20px; } .controls { justify-content: center; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <h1>🌶️ 胡椒监控系统</h1>
+                <p>家庭安全 · 实时监控 · 语音对讲</p>
+            </div>
+            <div class="status">
+                <div class="status-item"><span class="status-dot" id="cam-dot"></span><span>摄像头: <span id="camera-status">检测中</span></span></div>
+                <div class="status-item"><span class="status-dot online"></span><span>🌶️ OpenClaw</span></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">📹 实时监控 <span style="font-size:12px;color:#888;font-weight:normal;margin-left:auto;">隧道拉取 · 2秒更新</span></div>
+            <div class="camera-wrapper">
+                <img id="camera-feed" src="/camera.jpg?t=1" alt="摄像头画面" onerror="cameraError()">
+                <div class="camera-overlay"><span class="status-dot" id="live-dot"></span><span class="cam-time" id="cam-time">--:--:--</span></div>
+            </div>
+            <div class="controls">
+                <button class="btn btn-primary" onclick="refreshCamera()">🔄 刷新</button>
+                <button class="btn btn-secondary" onclick="toggleFullscreen()">📺 全屏</button>
+                <button class="btn btn-secondary" onclick="takeSnapshot()">📷 截图</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">🎙️ 语音对讲</div>
+            <div class="controls" id="voice-controls">
+                <button class="btn btn-voice-talk" id="btn-talk" onclick="startTalk()">🗣️ 对讲</button>
+                <button class="btn btn-voice" id="btn-listen" onclick="startListen()">👂 实时监听</button>
+                <button class="btn btn-secondary" id="btn-stop" style="display:none" onclick="stopAll()">⏹️ 停止</button>
+            </div>
+            <div class="voice-status" id="voice-status"></div>
+            <div class="listen-indicator" id="listen-indicator">
+                <div class="listen-wave"><span></span><span></span><span></span><span></span><span></span></div>
+                <span id="listen-text">实时监听中...</span>
+            </div>
+            <div class="waveform" id="waveform"></div>
+        </div>
+
+        <div style="display:flex;gap:10px"><button class="btn btn-logout" onclick="doLogout()">🚪 退出</button></div>
+        <div class="footer">🌶️ 胡椒助手 · Powered by OpenClaw</div>
+    </div>
+
+<script>// 修复：img.onload 只在首次加载时触发，后续刷新需要手动检测
+let camOk=false, mediaRecorder=null, audioChunks=[], isRecording=false;
+let isListening=false, listenQueue=[], currentAudio=null, listenAbortController=null;
+
+// Camera
+function refreshCamera(){
+    const img=document.getElementById('camera-feed');
+    const ts = Date.now();
+    img.src='/camera.jpg?t='+ts;
+    // 使用 setTimeout 检测图片是否成功加载
+    let loaded = false;
+    img.onload = function(){ loaded = true; camOk=true; document.getElementById('camera-status').textContent='在线'; document.getElementById('cam-dot').className='status-dot online'; document.getElementById('live-dot').className='status-dot online'; };
+    img.onerror = function(){ loaded = true; cameraError(); };
+    setTimeout(function(){
+        if(!loaded) cameraError();
+    }, 3000);
+    document.getElementById('cam-time').textContent=new Date().toLocaleTimeString();
+}
+function cameraError(){document.getElementById('camera-status').textContent='离线';document.getElementById('cam-dot').className='status-dot offline';document.getElementById('live-dot').className='status-dot offline'}
+refreshCamera();setInterval(refreshCamera,2000);setInterval(()=>{document.getElementById('cam-time').textContent=new Date().toLocaleTimeString()},1000);
+let _iosFsActive=false,_iosFsTimer=null;function toggleFullscreen(){if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen).call(document);return;}if(_iosFsActive){_exitIOSFs();return;}const el=document.getElementById('camera-feed');const req=el.requestFullscreen||el.webkitRequestFullscreen;if(req){req.call(el).catch(()=>_enterIOSFs());}else{_enterIOSFs();}}function _enterIOSFs(){_iosFsActive=true;const ov=document.createElement('div');ov.id='iosfs';ov.style.cssText='position:fixed;inset:0;background:#000;z-index:9999;display:flex;align-items:center;justify-content:center;';const img=document.createElement('img');img.style.cssText='max-width:100vw;max-height:100vh;object-fit:contain;';img.src='/camera.jpg?t='+Date.now();const btn=document.createElement('div');btn.innerHTML='&#x2715;';btn.style.cssText='position:absolute;top:14px;right:18px;color:#fff;font-size:30px;cursor:pointer;background:rgba(0,0,0,.5);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;z-index:1;';btn.onclick=_exitIOSFs;ov.appendChild(img);ov.appendChild(btn);document.body.appendChild(ov);_iosFsTimer=setInterval(()=>{const o=document.getElementById('iosfs');if(o){const ci=document.getElementById('camera-feed');if(ci)img.src=ci.src;}else{clearInterval(_iosFsTimer);_iosFsActive=false;}},2000);}function _exitIOSFs(){clearInterval(_iosFsTimer);_iosFsActive=false;const o=document.getElementById('iosfs');if(o)o.remove();}
+function takeSnapshot(){const a=document.createElement('a');a.download='snapshot-'+new Date().toISOString().replace(/[:.]/g,'-')+'.jpg';a.href=document.getElementById('camera-feed').src;a.click()}
+function doLogout(){fetch('/logout',{method:'POST'}).then(()=>{window.location.href='/login'})}
+fetch('/check_auth').then(r=>r.json()).then(d=>{if(!d.authenticated)window.location.href='/login'}).catch(()=>window.location.href='/login');
+
+// Talk: browser mic → Pi speaker
+async function startTalk(){
+    if(isRecording||isListening)return;
+    try{
+        const stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,sampleRate:16000}});
+        let mimeType='audio/webm;codecs=opus';
+        if(!MediaRecorder.isTypeSupported(mimeType))mimeType='audio/webm';
+        if(!MediaRecorder.isTypeSupported(mimeType))mimeType='audio/ogg;codecs=opus';
+        if(!MediaRecorder.isTypeSupported(mimeType))mimeType='';
+        mediaRecorder=mimeType?new MediaRecorder(stream,{mimeType}):new MediaRecorder(stream);
+        audioChunks=[];
+        mediaRecorder.ondataavailable=e=>{if(e.data.size>0)audioChunks.push(e.data)};
+        mediaRecorder.onstop=async()=>{
+            stream.getTracks().forEach(t=>t.stop());
+            const blob=new Blob(audioChunks,{type:mimeType||'audio/webm'});
+            setVoice('⬆️ 发送语音到Pi...');
+            try{
+                const resp=await fetch('/api/play_audio',{method:'POST',body:blob});
+                const result=await resp.json();
+                if(result.ok)setVoice('✅ 语音已发送，Pi正在播放');else setVoice('❌ '+(result.error||'失败'));
+            }catch(e){setVoice('❌ 网络错误: '+e.message)}
+            isRecording=false;resetBtns();
+        };
+        mediaRecorder.start();isRecording=true;
+        document.getElementById('btn-talk').className='btn recording';document.getElementById('btn-talk').textContent='🔴 录音中...';
+        document.getElementById('btn-listen').style.display='none';document.getElementById('btn-stop').style.display='';
+        setVoice('🔴 录音中... 点击 ⏹️ 停止');
+    }catch(e){setVoice('❌ 麦克风错误: '+e.message)}
+}
+
+// Listen: real-time continuous audio from Pi
+let ws=null,audioCtx=null,sourceNode=null;
+let stopListenFlag=false;
+
+function getBaseUrl(){
+    const proto=location.protocol==='https:'?'wss':'ws';
+    const host=location.hostname+(location.port?':'+location.port:'');
+    return proto+'://'+host;
+}
+
+async function startListen(){
+    if(isListening||isRecording)return;
+    isListening=true;
+    stopListenFlag=false;
+    document.getElementById('btn-talk').style.display='none';
+    document.getElementById('btn-listen').className='btn listening';
+    document.getElementById('btn-listen').textContent='🔊 监听中';
+    document.getElementById('btn-stop').style.display='';
+    document.getElementById('listen-indicator').className='listen-indicator active';
+    document.getElementById('waveform').className='waveform active';
+    setVoice('正在连接...');
+
+    const wf=document.getElementById('waveform');
+    wf.innerHTML='';
+    for(let i=0;i<30;i++){
+        const b=document.createElement('div');b.className='bar';b.style.height='3px';wf.appendChild(b);
+    }
+
+    try {
+        audioCtx=new (window.AudioContext||window.webkitAudioContext)({sampleRate: 16000});
+
+        const RING_SIZE=65536;
+        const ringBuf=new Float32Array(RING_SIZE);
+        let ringWrite=0, ringRead=0, ringCount=0;
+
+        const processor=audioCtx.createScriptProcessor(4096,0,1);
+        processor.onaudioprocess=function(e){
+            const out=e.outputBuffer.getChannelData(0);
+            for(let i=0;i<out.length;i++){
+                if(ringCount>0){
+                    out[i]=ringBuf[ringRead];
+                    ringRead=(ringRead+1)%RING_SIZE;
+                    ringCount--;
+                } else {
+                    out[i]=0;
+                }
+            }
+            if(ringCount>0){
+                let rms=0, n=Math.min(ringCount,out.length);
+                for(let i=0;i<n;i++){
+                    const idx=(ringRead-n+i+RING_SIZE)%RING_SIZE;
+                    rms+=ringBuf[idx]*ringBuf[idx];
+                }
+                rms=Math.sqrt(rms/n);
+                const bars=wf.children;
+                for(let j=0;j<bars.length-1;j++) bars[j].style.height=bars[j+1].style.height;
+                const h=Math.max(3,Math.min(36,rms*300));
+                if(bars.length>0) bars[bars.length-1].style.height=h+'px';
+            }
+        };
+        processor.connect(audioCtx.destination);
+        sourceNode=processor;
+
+        ws=new WebSocket(getBaseUrl()+'/ws/listen');
+        ws.onopen=()=>{ setVoice('🔊 实时监听已开启 - 持续收听家中声音'); };
+        ws.binaryType='arraybuffer';
+        ws.onmessage=(event)=>{
+            try {
+                const pcm=new Int16Array(event.data);
+                for(let i=0;i<pcm.length;i++){
+                    ringBuf[ringWrite]=pcm[i]/32768;
+                    ringWrite=(ringWrite+1)%RING_SIZE;
+                    ringCount++;
+                    if(ringCount>=RING_SIZE){
+                        ringRead=(ringRead+1)%RING_SIZE;
+                        ringCount=RING_SIZE-1;
+                    }
+                }
+            } catch(e){ console.error('PCM error', e); }
+        };
+        ws.onerror=()=>{ setVoice('连接错误'); };
+        ws.onclose=()=>{ if(isListening){stopAll();} };
+    } catch(e){ setVoice('启动失败: '+e.message); stopAll(); }
+}
+function stopAll(){
+    if(mediaRecorder&&mediaRecorder.state==='recording'){mediaRecorder.stop();return}
+    isListening=false;stopListenFlag=true;
+    if(ws){ws.close();ws=null;}
+    if(audioCtx){audioCtx.close();audioCtx=null;}
+    if(sourceNode){sourceNode.disconnect();sourceNode=null;}
+    resetBtns();setVoice('');
+    document.getElementById('listen-indicator').className='listen-indicator';
+    const wf=document.getElementById('waveform');
+    wf.className='waveform';
+    const bars=wf.children;
+    for(let i=0;i<bars.length;i++) bars[i].style.height='3px';
+}
+
+function resetBtns(){
+    const talk=document.getElementById('btn-talk');talk.className='btn btn-voice-talk';talk.textContent='🗣️ 对讲';talk.style.display='';
+    const listen=document.getElementById('btn-listen');listen.className='btn btn-voice';listen.textContent='👂 实时监听';listen.style.display='';
+    document.getElementById('btn-stop').style.display='none';isRecording=false;isListening=false;
+    document.getElementById('listen-indicator').className='listen-indicator';
+}
+function setVoice(msg){document.getElementById('voice-status').textContent=msg}
+</script>
+</body>
+</html>

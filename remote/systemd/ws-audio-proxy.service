@@ -1,0 +1,14 @@
+[Unit]
+Description=WebSocket Audio Proxy
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/webcam-dashboard
+ExecStart=/usr/bin/python3 -u /opt/webcam-dashboard/ws_audio_proxy_fixed.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
