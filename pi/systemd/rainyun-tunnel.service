@@ -5,7 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes -R 8082:localhost:8888 -R 8083:localhost:8889 -i /home/ckjoy/.ssh/id_ed25519 -p 34941 -N root@103.45.162.207
+ExecStartPre=/home/ckjoy/.openclaw/workspace/scripts/clear_rainyun_tunnel_ports.sh
+ExecStart=/usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes -R 8082:127.0.0.1:8888 -R 8083:127.0.0.1:8889 -i /home/ckjoy/.ssh/id_ed25519 -p 34941 -N root@103.45.162.207
 Restart=always
 RestartSec=5
 

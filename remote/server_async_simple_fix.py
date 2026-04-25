@@ -177,6 +177,47 @@ async def handle_client(reader, writer):
                 except Exception as e:
                     await send_response(writer, 502, [], b'')
 
+            elif path == '/camera.mjpg':
+                try:
+                    cr, cw = await asyncio.wait_for(asyncio.open_connection('127.0.0.1', 8082), timeout=5)
+                    cw.write(b'GET /camera.mjpg HTTP/1.0\r\nHost: localhost\r\n\r\n')
+                    await cw.drain()
+                    header_data = b''
+                    while b'\r\n\r\n' not in header_data:
+                        d = await asyncio.wait_for(cr.read(4096), timeout=5)
+                        if not d: break
+                        header_data += d
+                    if b'\r\n\r\n' not in header_data:
+                        cw.close()
+                        await send_response(writer, 502, [], b'')
+                        return
+                    headers_part, body_start = header_data.split(b'\r\n\r\n', 1)
+                    header_lines = headers_part.decode().split('\r\n')
+                    writer.write((header_lines[0] + '\r\n').encode())
+                    for line in header_lines[1:]:
+                        if 'content-length' not in line.lower():
+                            writer.write((line + '\r\n').encode())
+                    writer.write(b'\r\n')
+                    await writer.drain()
+                    if body_start:
+                        writer.write(body_start)
+                        await writer.drain()
+                    async def pipe_stream(src, dst):
+                        try:
+                            while True:
+                                d = await asyncio.wait_for(src.read(65536), timeout=3600)
+                                if not d: break
+                                dst.write(d)
+                                await dst.drain()
+                        except: pass
+                        finally:
+                            try: dst.close()
+                            except: pass
+                    await asyncio.gather(pipe_stream(cr, writer), return_exceptions=True)
+                    cw.close()
+                except:
+                    await send_response(writer, 502, [], b'')
+
             elif path == '/api/status':
                 try:
                     cr, cw = await asyncio.wait_for(asyncio.open_connection('127.0.0.1', 8082), timeout=3)

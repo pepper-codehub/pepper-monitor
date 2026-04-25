@@ -8,6 +8,7 @@ import threading
 import struct
 import hashlib
 import base64
+import os
 
 WS_PORT = 8445
 PI_HOST = "127.0.0.1"
