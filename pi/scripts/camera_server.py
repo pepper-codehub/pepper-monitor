@@ -27,6 +27,10 @@ STREAM_BOUNDARY = "pepperframe"
 # ── 全局缓存 ──────────────────────────────────────────────────────────────
 _cache_lock  = threading.Lock()
 stream_lock = threading.Lock()
+INTERCOM_MAX_BYTES = 2 * 1024 * 1024
+INTERCOM_VOLUME = "60"
+intercom_lock = threading.Lock()
+intercom_proc = None
 
 
 class MjpegHub:
@@ -159,6 +163,18 @@ _cached_img  = None
 _cache_ts    = 0.0
 _cache_fails = 0
 
+def _stop_intercom_process(proc):
+    if proc and proc.poll() is None:
+        try:
+            proc.terminate()
+            proc.wait(timeout=1)
+        except Exception:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+
+
 def _fetch_frame():
     try:
         return urllib.request.urlopen(GO2RTC_FRAME_URL, timeout=4.0).read()
@@ -197,13 +213,23 @@ class CameraHandler(http.server.BaseHTTPRequestHandler):
 
     def do_POST(self):
         if self.path == "/api/play_audio":
+            global intercom_proc
             length = int(self.headers.get("Content-Length", 0))
+            if length <= 0 or length > INTERCOM_MAX_BYTES:
+                print("[CAMERA] reject intercom audio length={}".format(length), flush=True)
+                self._json(413, b'{"ok": false, "error": "audio too large"}')
+                return
             data = self.rfile.read(length)
             tmp = "/tmp/intercom.webm"
             with open(tmp, "wb") as f:
                 f.write(data)
-            print("[CAMERA] 收到语音对讲，开始播放...")
-            subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", tmp])
+            print("[CAMERA] 收到语音对讲，开始播放 length={}".format(length), flush=True)
+            with intercom_lock:
+                _stop_intercom_process(intercom_proc)
+                intercom_proc = subprocess.Popen([
+                    "ffplay", "-nodisp", "-vn", "-autoexit", "-loglevel", "warning",
+                    "-volume", INTERCOM_VOLUME, tmp
+                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             self._json(200, b'{"ok": true}')
         else:
             self.send_response(404)

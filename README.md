@@ -16,8 +16,9 @@
 ## 备份
 
 - Pi 最新备份：`/home/ckjoy/.openclaw/workspace/pepper-monitor-backup-latest.tar.gz`
-- Pi 归档备份：`/home/ckjoy/openclaw-monitor-backup/pepper_monitor_20260425_2038.tar.gz`
-- 坚果云：`/OpenClaw_Backups/monitor/pepper-monitor-backup-20260425_2038.tar.gz`
+- Pi 归档备份：`/home/ckjoy/openclaw-monitor-backup/pepper_monitor_20260505_2244.tar.gz`
+- 坚果云：`/OpenClaw_Backups/monitor/pepper-monitor-backup-20260505_2244.tar.gz`
+- 最近备份时间：`2026-05-05 22:44 CST`
 
 ## 目录
 
