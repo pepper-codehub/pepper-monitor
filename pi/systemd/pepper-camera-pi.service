@@ -1,10 +1,12 @@
 [Unit]
 Description=Pepper Camera HTTP Server on Pi (Port 8888)
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /home/ckjoy/.openclaw/workspace/scripts/camera_server.py
+WorkingDirectory=%h/.local/share/pepper-monitor
+ExecStart=%h/.local/share/pepper-monitor/venv/bin/python -u %h/.local/share/pepper-monitor/pi/scripts/camera_server.py
 Restart=always
 RestartSec=5
 

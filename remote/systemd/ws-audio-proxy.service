@@ -1,6 +1,7 @@
 [Unit]
-Description=WebSocket Audio Proxy
-After=network.target
+Description=Pepper WebSocket Audio Proxy (Port 8445)
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
